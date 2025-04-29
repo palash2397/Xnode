@@ -15,14 +15,21 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
+contract XnodeTokenICO is
+    ERC20,
+    ERC20Burnable,
+    Ownable,
+    ReentrancyGuard,
+    Pausable
+{
     using SafeERC20 for IERC20;
     IERC20 public usdt;
 
     constructor(address usdt_) ERC20("Xnode", "XODE") Ownable(msg.sender) {
         usdt = IERC20(usdt_);
-        uint256 totalSupply = 100000000 * 10**decimals();
+        uint256 totalSupply = 100000000 * 10 ** decimals();
         _mint(msg.sender, totalSupply);
     }
 
@@ -55,6 +62,7 @@ contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
         uint256 lockingPeriod;
         uint256 totalReward;
         uint256 rewardPerWeek;
+        uint256 stakeStartTime;
     }
 
     mapping(uint256 => SaleDetail) public salesDetailMap;
@@ -71,6 +79,14 @@ contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
     uint256 private publicSaleId;
     uint256 public minimumStakingAmount;
 
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     function updateSaleIdbyType(uint256 _saleType, uint256 _saleId) internal {
         if (_saleType == 0) {
             privateSaleId = _saleId;
@@ -81,11 +97,9 @@ contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
         }
     }
 
-    function getSaleIdbyType(uint256 _saleType)
-        internal
-        view
-        returns (uint256)
-    {
+    function getSaleIdbyType(
+        uint256 _saleType
+    ) internal view returns (uint256) {
         uint256 _saleId = _saleType == 0 ? privateSaleId : publicSaleId;
         return _saleId;
     }
@@ -126,27 +140,17 @@ contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
             !saleIdMap[_saleId]); // Sale is not finalized or goal not reached
     }
 
-    function pause() public onlyOwner {
-        pause();
+    function calculateToken(
+        uint256 amount,
+        uint256 _rate
+    ) public pure returns (uint256) {
+        return (amount / _rate) * 10 ** 18;
     }
 
-    function unpause() public onlyOwner {
-        unpause();
-    }
-
-    function calculateToken(uint256 amount, uint256 _rate)
-        public
-        pure
-        returns (uint256)
-    {
-        return (amount / _rate) * 10**18;
-    }
-
-    function buyTokens(uint8 _saleType, uint256 _usdtAmount)
-        public
-        payable
-        nonReentrant
-    {
+    function buyTokens(
+        uint8 _saleType,
+        uint256 _usdtAmount
+    ) public payable nonReentrant {
         uint256 _saleId = getSaleIdbyType(_saleType);
         require(isActive(_saleId), "Sale is not active");
 
@@ -217,19 +221,32 @@ contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
         payable(owner()).transfer(balance);
     }
 
-    function stakeTokens(uint256 _amount, uint256 _durationInDays) external {
-        require(_amount > minimumStakingAmount, "Not enough tokens to stake");
+    function stakeTokens(
+        uint256 _amount,
+        uint256 _durationInDays
+    ) external nonReentrant whenNotPaused {
+        require(_amount > minimumStakingAmount, "Insufficient staking amount");
         _transfer(msg.sender, address(this), _amount);
 
-        // Calculate the reward per day instead of per week
-        uint256 rewardPerDay = (_amount * 10**decimals()) /
-            (_durationInDays * 1 days); // 1 day in seconds
+        UserStaking storage staking = userStakingMap[msg.sender];
 
-        UserStaking storage ustaking = userStakingMap[msg.sender];
-        ustaking.stakeAmount += _amount;
-        ustaking.lockingPeriod = _durationInDays * 1 days; // Convert days to seconds
-        ustaking.rewardPerWeek = rewardPerDay * 7; // Weekly reward
-        ustaking.totalReward = ustaking.rewardPerWeek * (_durationInDays / 7); // Total reward based on staking period
+        staking.stakeAmount = _amount;
+        staking.lockingPeriod = _durationInDays * 1 days;
+        staking.stakeStartTime = block.timestamp;
+        staking.lastClaimedTime = block.timestamp;
+
+        if (_durationInDays == 90) {
+            staking.rewardPerWeek = (_amount * 10) / 100; // 10%
+        } else if (_durationInDays == 120) {
+            staking.rewardPerWeek = (_amount * 15) / 100; // 15%
+        } else if (_durationInDays == 180) {
+            staking.rewardPerWeek = (_amount * 20) / 100; // 20%
+        } else {
+            revert("Invalid staking duration");
+        }
+
+        uint256 totalWeeks = _durationInDays / 7;
+        staking.totalReward = staking.rewardPerWeek * totalWeeks;
 
         emit Staked(msg.sender, _amount, block.timestamp);
     }
@@ -266,35 +283,51 @@ contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
         return weeklyReward;
     }
 
+    function claim() external nonReentrant whenNotPaused {
+        UserStaking storage staking = userStakingMap[msg.sender];
 
-
-    function claim() external {
-        UserStaking storage ustaking = userStakingMap[msg.sender];
-        uint256 rewardAmount = calculateRewards(
-            msg.sender,
-            ustaking.stakeAmount,
-            ustaking.lockingPeriod
+        require(    
+            block.timestamp >= staking.lastClaimedTime + 7 days,
+            "Claim allowed only once a week"
         );
-        uint256 currentTime = block.timestamp;
+
+        uint256 weeksPassed = (block.timestamp - staking.lastClaimedTime) / 7 days;
+          
+        require(weeksPassed >= 1, "No full week passed");
+
+        uint256 claimableReward = staking.rewardPerWeek * weeksPassed;
+
+        uint256 remainingReward = staking.totalReward - staking.claimed;
+        require(remainingReward > 0, "No rewards left to claim");
+
+        if (claimableReward > remainingReward) {
+            claimableReward = remainingReward; // cap it
+        }
 
         require(
-            currentTime > ustaking.lastClaimedTime + 7 days,
-            "You can only claim rewards once a week."
+            balanceOf(address(this)) >= claimableReward,
+            "Contract has insufficient reward balance"
         );
 
-        require(
-            rewardAmount > ustaking.claimed,
-            "No rewards available to claim."
-        );
+        staking.claimed += claimableReward;
+        staking.lastClaimedTime = block.timestamp;
 
-        uint256 claimableReward = rewardAmount - ustaking.claimed;
-
-        _transfer(owner(), msg.sender, claimableReward);
-        ustaking.claimed += claimableReward;
-        ustaking.lastClaimedTime = currentTime;
+        _transfer(address(this), msg.sender, claimableReward); // ✅ correct from contract balance
 
         emit claimed(msg.sender, claimableReward);
     }
 
+    function unstake() external nonReentrant whenNotPaused {
+        UserStaking storage staking = userStakingMap[msg.sender];
+        require(
+            block.timestamp >= staking.stakeStartTime + staking.lockingPeriod,
+            "Staking period not over"
+        );
+        require(staking.stakeAmount > 0, "No stake found");
 
+        uint256 amount = staking.stakeAmount;
+        staking.stakeAmount = 0;
+
+        _transfer(address(this), msg.sender, amount);
+    }
 }
