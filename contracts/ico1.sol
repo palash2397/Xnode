@@ -17,7 +17,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract XnodeTokenICO is
+contract VnodeTokenICO is
     ERC20,
     ERC20Burnable,
     Ownable,
@@ -27,10 +27,10 @@ contract XnodeTokenICO is
     using SafeERC20 for IERC20;
     IERC20 public usdt;
 
-    constructor(address usdt_) ERC20("Xnode", "XODE") Ownable(msg.sender) {
+    constructor(address usdt_) ERC20("Vnode", "Vnode") Ownable(msg.sender) {
         usdt = IERC20(usdt_);
-        uint256 totalSupply = 100000000 * 10 ** decimals();
-        _mint(msg.sender, totalSupply);
+        uint256 totalSupply = 100000000 * 10**decimals();
+        _mint(owner(), totalSupply);
     }
 
     uint256 private saleId;
@@ -97,9 +97,11 @@ contract XnodeTokenICO is
         }
     }
 
-    function getSaleIdbyType(
-        uint256 _saleType
-    ) internal view returns (uint256) {
+    function getSaleIdbyType(uint256 _saleType)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 _saleId = _saleType == 0 ? privateSaleId : publicSaleId;
         return _saleId;
     }
@@ -140,26 +142,33 @@ contract XnodeTokenICO is
             !saleIdMap[_saleId]); // Sale is not finalized or goal not reached
     }
 
-    function calculateToken(
-        uint256 amount,
-        uint256 _rate
-    ) public pure returns (uint256) {
-        return (amount / _rate) * 10 ** 18;
+    function calculateToken(uint256 amount, uint256 _rate)
+        public
+        pure
+        returns (uint256)
+    {
+        return (amount * 10**18) / _rate;
     }
 
-    function buyTokens(
-        uint8 _saleType,
-        uint256 _usdtAmount
-    ) public payable nonReentrant {
+    // uint8 _saleType, uint256 _usdtAmount
+
+    function buyTokens(uint8 _saleType, uint256 _usdtAmount)
+        public
+        payable
+        nonReentrant
+        
+    {
         uint256 _saleId = getSaleIdbyType(_saleType);
         require(isActive(_saleId), "Sale is not active");
 
-        // Ensure user only pays with either ETH or USDT
+        // // Ensure user only pays with either ETH or USDT
         require(
             (msg.value > 0 && _usdtAmount == 0) ||
                 (msg.value == 0 && _usdtAmount > 0),
             "Pay with either ETH or USDT, not both"
         );
+
+        require(msg.sender != owner(), "Owner cannot buy tokens");
 
         require(saleM, "the sale is temporary stop");
 
@@ -167,26 +176,27 @@ contract XnodeTokenICO is
         uint256 tokens;
 
         if (msg.value > 0) {
-            tokens = calculateToken(msg.value, detail.price);
-            require(tokens >= detail.minBound, "Not enough tokens");
+             require(tokens >= detail.minBound, "Not enough tokens");
             require(
-                balanceOf(address(this)) >= tokens,
-                "Insufficient tokens in contract"
+                balanceOf(owner()) >= tokens,
+                "Insufficient tokenss in contract"
             );
+            // _transfer(owner(), msg.sender, tokens);
+            // _transfer(owner(), msg.sender, 11 * 10**decimals());
 
-            _transfer(address(this), msg.sender, tokens);
             detail.raisedIn += msg.value;
             payable(owner()).transfer(msg.value);
-        } else {
+        }
+        else {
             tokens = calculateToken(_usdtAmount, detail.price);
-            require(tokens >= detail.minBound, "Not enough tokens");
+            // require(tokens >= detail.minBound, "Not enough tokens");
             require(
-                balanceOf(address(this)) >= tokens,
+                balanceOf(owner()) >= tokens,
                 "Insufficient tokens in contract"
             );
 
             usdt.transferFrom(msg.sender, address(this), _usdtAmount);
-            _transfer(address(this), msg.sender, tokens);
+            _transfer(owner(), msg.sender, tokens);
             detail.raisedIn += _usdtAmount;
         }
 
@@ -221,10 +231,11 @@ contract XnodeTokenICO is
         payable(owner()).transfer(balance);
     }
 
-    function stakeTokens(
-        uint256 _amount,
-        uint256 _durationInDays
-    ) external nonReentrant whenNotPaused {
+    function stakeTokens(uint256 _amount, uint256 _durationInDays)
+        external
+        nonReentrant
+        whenNotPaused
+    {
         require(_amount > minimumStakingAmount, "Insufficient staking amount");
         _transfer(msg.sender, address(this), _amount);
 
@@ -286,13 +297,13 @@ contract XnodeTokenICO is
     function claim() external nonReentrant whenNotPaused {
         UserStaking storage staking = userStakingMap[msg.sender];
 
-        require(    
+        require(
             block.timestamp >= staking.lastClaimedTime + 7 days,
             "Claim allowed only once a week"
         );
 
-        uint256 weeksPassed = (block.timestamp - staking.lastClaimedTime) / 7 days;
-          
+        uint256 weeksPassed = (block.timestamp - staking.lastClaimedTime) /
+            7 days;
         require(weeksPassed >= 1, "No full week passed");
 
         uint256 claimableReward = staking.rewardPerWeek * weeksPassed;
@@ -305,14 +316,14 @@ contract XnodeTokenICO is
         }
 
         require(
-            balanceOf(address(this)) >= claimableReward,
+            balanceOf(owner()) >= claimableReward,
             "Contract has insufficient reward balance"
         );
 
         staking.claimed += claimableReward;
         staking.lastClaimedTime = block.timestamp;
 
-        _transfer(address(this), msg.sender, claimableReward); // ✅ correct from contract balance
+        _transfer(owner(), msg.sender, claimableReward); // ✅ correct from contract balance
 
         emit claimed(msg.sender, claimableReward);
     }
@@ -328,6 +339,6 @@ contract XnodeTokenICO is
         uint256 amount = staking.stakeAmount;
         staking.stakeAmount = 0;
 
-        _transfer(address(this), msg.sender, amount);
+        _transfer(owner(), msg.sender, amount);
     }
 }

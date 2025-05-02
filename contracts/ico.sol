@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract XnodeTokenICO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
+contract XnodeTokenICOO is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public usdt;
