@@ -19,7 +19,7 @@ describe("Lock", function () {
     // Contracts are deployed using the first signer/account by default
     const [owner, otherAccount] = await ethers.getSigners();
 
-    const Lock = await ethers.getContractFactory("Lock");
+    const Lock = await ethers.getContractFactory("VnodeTokenICO");
     const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
 
     return { lock, unlockTime, lockedAmount, owner, otherAccount };
@@ -124,3 +124,28 @@ describe("Lock", function () {
     });
   });
 });
+
+
+
+  // function setRewardPercentages(uint256[] calldata percentages) external onlyRole(ADMIN_ROLE) {
+  //       rewardPercentages = percentages;
+  //       emit ReferralConfigUpdated(address(rewardToken), stakingContract, percentages);
+  //   }
+
+  //   function setTokenAddress(address token) external onlyRole(ADMIN_ROLE) {
+  //       require(token != address(0), "Invalid address");
+  //       rewardToken = IERC20(token);
+  //   }
+
+  //   function setStakingContract(address contractAddr) external onlyRole(ADMIN_ROLE) {
+  //       require(contractAddr != address(0), "Invalid address");
+  //       stakingContract = contractAddr;
+  //   }
+
+  //   function pause() external onlyRole(ADMIN_ROLE) {
+  //       _pause();
+  //   }
+
+  //   function unpause() external onlyRole(ADMIN_ROLE) {
+  //       _unpause();
+  //   }
