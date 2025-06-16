@@ -51,6 +51,7 @@ contract ReferralSystem is AccessControl, Pausable, ReentrancyGuard {
         require(user != referrer, "Self-referral not allowed");
         require(!registered[user], "Already registered");
 
+
         // Prevent circular referral
         address current = referrer;
         while (current != address(0)) {
@@ -80,7 +81,6 @@ contract ReferralSystem is AccessControl, Pausable, ReentrancyGuard {
     // Module 2: Reward Distribution
     function distributeReferralReward(address user, uint256 amount) external {
         require(msg.sender == stakingContract, "Unauthorized");
-
         address currentReferrer = referrers[user];
         for (uint8 level = 0; level < rewardPercentages.length && currentReferrer != address(0); level++) {
             uint256 reward = (amount * rewardPercentages[level]) / PERCENTAGE_DIVISOR;
@@ -88,6 +88,7 @@ contract ReferralSystem is AccessControl, Pausable, ReentrancyGuard {
             emit RewardDistributed(user, currentReferrer, reward, level);
             currentReferrer = referrers[currentReferrer];
         }
+
     }
 
     function getRewardPercentage(uint8 level) external view returns (uint256) {

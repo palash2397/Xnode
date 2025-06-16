@@ -29,12 +29,11 @@ contract VnodeTokenICO is
 
     constructor(address usdt_) ERC20("Vnode", "Vnode") Ownable(msg.sender) {
         usdt = IERC20(usdt_);
-        uint256 totalSupply = 100000000 * 10**decimals();
+        uint256 totalSupply = 100000000 * 10 ** decimals();
         _mint(owner(), totalSupply);
     }
 
     uint256 private saleId;
-
     bool public saleM = true;
 
     struct SaleDetail {
@@ -97,11 +96,9 @@ contract VnodeTokenICO is
         }
     }
 
-    function getSaleIdbyType(uint256 _saleType)
-        internal
-        view
-        returns (uint256)
-    {
+    function getSaleIdbyType(
+        uint256 _saleType
+    ) internal view returns (uint256) {
         uint256 _saleId = _saleType == 0 ? privateSaleId : publicSaleId;
         return _saleId;
     }
@@ -121,9 +118,7 @@ contract VnodeTokenICO is
         require(_saleType == 0 || _saleType == 1, "Invalid sale type");
         saleId++;
         updateSaleIdbyType(_saleType, saleId);
-
         SaleDetail memory detail;
-
         detail.start = _start;
         detail.end = _end;
         detail.price = _price;
@@ -142,22 +137,17 @@ contract VnodeTokenICO is
             !saleIdMap[_saleId]); // Sale is not finalized or goal not reached
     }
 
-    function calculateToken(uint256 amount, uint256 _rate)
-        public
-        pure
-        returns (uint256)
-    {
-        return (amount * 10**18) / _rate;
+    function calculateToken(
+        uint256 amount,
+        uint256 _rate
+    ) public pure returns (uint256) {
+        return (amount * 10 ** 18) / _rate;
     }
 
-    // uint8 _saleType, uint256 _usdtAmount
-
-    function buyTokens(uint8 _saleType, uint256 _usdtAmount)
-        public
-        payable
-        nonReentrant
-        
-    {
+    function buyTokens(
+        uint8 _saleType,
+        uint256 _usdtAmount
+    ) public payable nonReentrant {
         uint256 _saleId = getSaleIdbyType(_saleType);
         require(isActive(_saleId), "Sale is not active");
 
@@ -176,20 +166,20 @@ contract VnodeTokenICO is
         uint256 tokens;
 
         if (msg.value > 0) {
-             require(tokens >= detail.minBound, "Not enough tokens");
+            tokens = calculateToken(msg.value, detail.price);
+            require(tokens >= detail.minBound, "Not enough tokens");
             require(
                 balanceOf(owner()) >= tokens,
                 "Insufficient tokenss in contract"
             );
-            // _transfer(owner(), msg.sender, tokens);
+            _transfer(owner(), msg.sender, tokens);
             // _transfer(owner(), msg.sender, 11 * 10**decimals());
 
             detail.raisedIn += msg.value;
             payable(owner()).transfer(msg.value);
-        }
-        else {
+        } else {
             tokens = calculateToken(_usdtAmount, detail.price);
-            // require(tokens >= detail.minBound, "Not enough tokens");
+            require(tokens >= detail.minBound, "Not enough tokens");
             require(
                 balanceOf(owner()) >= tokens,
                 "Insufficient tokens in contract"
@@ -231,11 +221,10 @@ contract VnodeTokenICO is
         payable(owner()).transfer(balance);
     }
 
-    function stakeTokens(uint256 _amount, uint256 _durationInDays)
-        external
-        nonReentrant
-        whenNotPaused
-    {
+    function stakeTokens(
+        uint256 _amount,
+        uint256 _durationInDays
+    ) external nonReentrant whenNotPaused {
         require(_amount > minimumStakingAmount, "Insufficient staking amount");
         _transfer(msg.sender, address(this), _amount);
 
@@ -286,7 +275,6 @@ contract VnodeTokenICO is
 
         // Calculate total rewards for the entire staking period
         uint256 totalRewards = weeklyReward * (_duration / 7 days); // Duration in weeks
-
         ustaking.totalReward = totalRewards;
         ustaking.rewardPerWeek = weeklyReward;
 
@@ -304,8 +292,8 @@ contract VnodeTokenICO is
 
         uint256 weeksPassed = (block.timestamp - staking.lastClaimedTime) /
             7 days;
-        require(weeksPassed >= 1, "No full week passed");
 
+        require(weeksPassed >= 1, "No full week passed");
         uint256 claimableReward = staking.rewardPerWeek * weeksPassed;
 
         uint256 remainingReward = staking.totalReward - staking.claimed;
@@ -322,9 +310,7 @@ contract VnodeTokenICO is
 
         staking.claimed += claimableReward;
         staking.lastClaimedTime = block.timestamp;
-
         _transfer(owner(), msg.sender, claimableReward); // ✅ correct from contract balance
-
         emit claimed(msg.sender, claimableReward);
     }
 

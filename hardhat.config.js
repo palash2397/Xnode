@@ -6,9 +6,9 @@ require("hardhat-gas-reporter");
 /** @type import('hardhat/config').HardhatUserConfig */
 
 const mnemonic = process.env.MNEMONIC;
-if (!mnemonic) {
-  throw new Error("Please set your MNEMONIC in a .env file");
-}
+// if (!mnemonic) {
+//   throw new Error("Please set your MNEMONIC in a .env file");
+// }
 
 const infuraApiKey = process.env.INFURA_API_KEY;
 if (!infuraApiKey) {
@@ -29,7 +29,7 @@ const chainIds = {
   "kyoto-testnet": 1998,
   "aurora-testnet": 1313161555,
   "aurora-mainnet": 1313161554,
-  "bsc-testnet": 97 
+  "bsc-testnet": 97,
 };
 
 function getChainConfig(chain) {
@@ -68,7 +68,6 @@ function getChainConfig(chain) {
     url: jsonRpcUrl,
   };
 }
-
 const network =
   process.env.TESTING === "true"
     ? "hardhat"
