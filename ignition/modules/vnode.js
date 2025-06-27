@@ -10,5 +10,8 @@ module.exports = buildModule("LockModule", (m) => {
 });
 
 // npx hardhat ignition deploy ./ignition/modules/vnode.js --network bsc-testnet
-// npx hardhat ignition verify chain-11155111
+
+
+
+
 

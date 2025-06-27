@@ -10,6 +10,8 @@ pragma solidity ^0.8.20;
 //   | $$  \ $$| $$ \  $$|  $$$$$$/| $$$$$$$/| $$$$$$$$
 //   |__/  |__/|__/  \__/ \______/ |_______/ |________/
 
+
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -49,7 +51,7 @@ contract NodeRewardSystem is AccessControl {
     Tier[] public tiers;
 
     event Invested(address indexed user, uint256 usdtAmount, uint256 vnodeAmount, uint8 tier);
-    event WorkloadSubmitted(address indexed user, uint256 month, uint256 hours, uint256 uptime);
+    event WorkloadSubmitted(address indexed user, uint256 month, uint256 hourss, uint256 uptime);
     event RewardCalculated(address indexed user, uint256 month, uint256 usdtReward, uint256 vnodeReward);
     event RewardClaimed(address indexed user, uint256 month);
     event AdminWithdrawal(address indexed token, uint256 amount);
@@ -68,10 +70,8 @@ contract NodeRewardSystem is AccessControl {
 
     function invest(uint256 usdtAmount, uint256 vnodeAmount) external {
         require(usdtAmount > 0 && vnodeAmount > 0, "Amounts must be > 0");
-
         uint256 total = usdtAmount + vnodeAmount;
         require(total >= tiers[0].minInvestment, "Below minimum tier");
-
         // Maintain exact 70:30 ratio
         require(
             usdtAmount * 100 / 70 == vnodeAmount * 100 / 30,
@@ -131,12 +131,9 @@ contract NodeRewardSystem is AccessControl {
         Reward storage r = rewards[msg.sender][month];
         require(!r.claimed, "Already claimed");
         require(r.usdtReward > 0 || r.vnodeReward > 0, "Nothing to claim");
-
         r.claimed = true;
-
         require(usdt.transfer(msg.sender, r.usdtReward), "USDT claim failed");
         require(vnode.transfer(msg.sender, r.vnodeReward), "VNode claim failed");
-
         emit RewardClaimed(msg.sender, month);
     }
 
@@ -144,7 +141,6 @@ contract NodeRewardSystem is AccessControl {
         uint256 balance = IERC20(token).balanceOf(address(this));
         require(balance > 0, "No balance");
         require(IERC20(token).transfer(msg.sender, balance), "Withdraw failed");
-
         emit AdminWithdrawal(token, balance);
     }
 

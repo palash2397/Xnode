@@ -16,3 +16,6 @@ module.exports = buildModule("LockModule", (m) => {
 // npx hardhat ignition deploy ./ignition/modules/Lock.js --network bsc-testnet 
 // https://testnet.bscscan.com/address/0x7F596417Ff3eE21B0D4B2F3D2f502352a35fe29E#code
 // https://testnet.bscscan.com/address/0xC1aDF8E7eB02A1bB4abf5747B8b9118c68ce72de#code
+
+// npx hardhat ignition deploy ./ignition/modules/Lock.js --network 
+

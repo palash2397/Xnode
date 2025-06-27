@@ -51,7 +51,6 @@ function getChainConfig(chain) {
     case "aurora-mainnnet":
       jsonRpcUrl = "https://mainnet.aurora.dev";
       break;
-
     case "kyoto-testnet":
       jsonRpcUrl = `https://rpc.testnet.kyotoprotocol.io:8545`;
       break;
@@ -68,11 +67,8 @@ function getChainConfig(chain) {
     url: jsonRpcUrl,
   };
 }
-const network =
-  process.env.TESTING === "true"
-    ? "hardhat"
-    : process.env.DEPLOY_NETWORK || "sepolia";
-
+const network = process.env.TESTING === "true" ? "hardhat" : process.env.DEPLOY_NETWORK || "sepolia";
+  
 const config = {
   defaultNetwork: network,
   etherscan: {
